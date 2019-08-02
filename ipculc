@@ -1,0 +1,55 @@
+ip2int()
+{
+    local a b c d
+   {  IFS=. read a b c d; } <<< $1
+    echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
+}
+
+int2ip()
+{
+    local ui32=$1; shift
+    local ip n
+    for n in 1 2 3 4; do
+        ip=$((ui32 & 0xff))${ip:+.}$ip
+        ui32=$((ui32 >> 8))
+    done
+    xml_future_variable=$ip
+}
+
+netmask()
+# Example: netmask 24 => 255.255.255.0
+{
+    local mask=$((0xffffffff << (32 - $1))); shift
+    int2ip $mask
+}
+
+
+broadcast()
+# Example: broadcast 192.0.2.0 24 => 192.0.2.255
+{
+    local addr=$(ip2int $1); shift
+    local mask=$((0xffffffff << (32 -$1))); shift
+    int2ip $((addr | ~mask))
+}
+
+network()
+# Example: network 192.0.2.0 24 => 192.0.2.0
+{
+    local addr=$(ip2int $1); shift
+    local mask=$((0xffffffff << (32 -$1))); shift
+    int2ip $((addr & mask))
+}
+
+find_range_start_ip(){
+	start_oktets=`echo $1 | cut -d. -f1-3`
+	arr=( $start_oktets.{1..2} )
+	gateway_ip=${arr[0]}
+	start_range_ip=${arr[1]}
+}
+
+find_range_stop_ip(){
+	start_oktets=`echo $1 | cut -d. -f1-3`
+	end_oktet=`echo $1 | cut -d. -f4`
+	find_end_oktet=`expr $end_oktet - 1`
+	range_end_ip=`echo $start_oktets.$find_end_oktet`
+}
